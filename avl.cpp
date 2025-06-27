@@ -22,6 +22,94 @@ class AVL {
 private:
     Arbol raiz;
 
+    int altura(pNodo nodo) {
+        if (!nodo) return 0;
+        int hIzq = altura(nodo->hijo[IZQUIERDO]);
+        int hDer = altura(nodo->hijo[DERECHO]);
+        return 1 + std::max(hIzq, hDer);
+    }
+
+    void actualizarFE(pNodo nodo) {
+        int hIzq = altura(nodo->hijo[IZQUIERDO]);
+        int hDer = altura(nodo->hijo[DERECHO]);
+        nodo->FE = hDer - hIzq;
+    }
+
+    pNodo rotarIzquierda(pNodo x) {
+        pNodo y = x->hijo[DERECHO];
+        pNodo T2 = y->hijo[IZQUIERDO];
+
+        y->hijo[IZQUIERDO] = x;
+        x->hijo[DERECHO] = T2;
+
+        if (T2) T2->padre = x;
+
+        y->padre = x->padre;
+        x->padre = y;
+
+        actualizarFE(x);
+        actualizarFE(y);
+
+        if (!y->padre) raiz = y;
+
+        return y;
+    }
+
+    pNodo rotarDerecha(pNodo y) {
+        pNodo x = y->hijo[IZQUIERDO];
+        pNodo T2 = x->hijo[DERECHO];
+
+        x->hijo[DERECHO] = y;
+        y->hijo[IZQUIERDO] = T2;
+
+        if (T2) T2->padre = y;
+
+        x->padre = y->padre;
+        y->padre = x;
+
+        actualizarFE(y);
+        actualizarFE(x);
+
+        if (!x->padre) raiz = x;
+
+        return x;
+    }
+
+    pNodo balancear(pNodo nodo) {
+        actualizarFE(nodo);
+
+        if (nodo->FE < -1) {
+            if (nodo->hijo[IZQUIERDO] && nodo->hijo[IZQUIERDO]->FE <= 0)
+                return rotarDerecha(nodo); // LL
+            else {
+                nodo->hijo[IZQUIERDO] = rotarIzquierda(nodo->hijo[IZQUIERDO]);
+                nodo->hijo[IZQUIERDO]->padre = nodo;
+                return rotarDerecha(nodo); // LR
+            }
+        }
+
+        if (nodo->FE > 1) {
+            if (nodo->hijo[DERECHO] && nodo->hijo[DERECHO]->FE >= 0)
+                return rotarIzquierda(nodo); // RR
+            else {
+                nodo->hijo[DERECHO] = rotarDerecha(nodo->hijo[DERECHO]);
+                nodo->hijo[DERECHO]->padre = nodo;
+                return rotarIzquierda(nodo); // RL
+            }
+        }
+
+        return nodo;
+    }
+
+    void balancearDesde(pNodo nodo) {
+        while (nodo) {
+            nodo = balancear(nodo);
+            if (!nodo->padre)
+                raiz = nodo; // por si rotamos en la raíz
+            nodo = nodo->padre;
+        }
+    }
+
 public:
     AVL() : raiz(nullptr) {}
 
@@ -39,9 +127,12 @@ public:
         }
 
         pNodo nuevo = new Nodo(valor, padre);
-        if (!padre) raiz = nuevo;
-        else padre->hijo[rama] = nuevo;
+        if (!padre)
+            raiz = nuevo;
+        else
+            padre->hijo[rama] = nuevo;
 
+        balancearDesde(padre);
         return true;
     }
 };
